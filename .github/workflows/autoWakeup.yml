@@ -1,0 +1,50 @@
+#自动激活Lean Cloud
+name: AutoWakeUpLeanCLoud
+
+on: 
+  release:
+    types: [published]
+  push:
+    tags:
+    - 'v*'
+  #  branches: 
+  #    - master
+  schedule:
+    # - cron: "*/18 0-15 * * *"
+    - cron: "0 0 * * *"
+  watch:
+    types: [started]
+   
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: github.event.repository.owner.id == github.event.sender.id  # 自己点的 star
+    steps:
+    - name: Checkout
+      uses: actions/checkout@master
+    - name: Set up Python #安装python
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.8
+    - name: Install requests #安装requests
+      run: |
+        pip install requests
+    - name: Waking  #读取站点信息
+      env: 
+        $CONFIG_SITE: ${{ secrets.Site }} # 读取评论后台地址
+      run: | 
+        python run.py ${{ secrets.Site }}
+        echo `date +"%Y-%m-%d %H:%M:%S"` begin > time.log
+    - name: Commit #更新日志到GitHub仓库
+      run: |
+        git config --global user.email AutoWakeUp@email.com
+        git config --global user.name AutoWakeUp
+        git add .
+        git commit -m "Successfully Wake" -a
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: main
+
+
